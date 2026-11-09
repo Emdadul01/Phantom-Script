@@ -20,7 +20,16 @@ local UserInputService = game:GetService("UserInputService")
 local Skin = { Name = "Folio" }
 local Env, P
 
-local FONT_HEAD = Enum.Font.Arvo
+-- Enum.Font[name] throws if the font does not exist, so look it up safely.
+local function pickFont(fallback, ...)
+    for _, name in ipairs({ ... }) do
+        local ok, f = pcall(function() return Enum.Font[name] end)
+        if ok and f then return f end
+    end
+    return fallback
+end
+
+local FONT_HEAD = pickFont(Enum.Font.GothamBold, "Merriweather", "Arvo")
 local FONT_BODY = Enum.Font.SourceSans
 local FONT_SEMI = Enum.Font.SourceSansSemibold
 local FONT_BOLD = Enum.Font.SourceSansBold
