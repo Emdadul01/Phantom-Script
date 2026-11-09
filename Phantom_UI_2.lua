@@ -149,6 +149,61 @@ local function label(props, parent)
     return make("TextLabel", props, parent)
 end
 
+-- Every feature row registers itself here so search results can jump to it.
+local Rows = {}
+local function norm(s)
+    return tidy(s):lower()
+end
+local function registerRow(row, ...)
+    for _, name in ipairs({ ... }) do
+        if type(name) == "string" and name ~= "" then
+            Rows[#Rows + 1] = { key = norm(name), row = row }
+        end
+    end
+    if #Rows > 600 then -- drop rows that were destroyed (theme list rebuilds, reloads)
+        local keep = {}
+        for _, r in ipairs(Rows) do
+            if r.row and r.row.Parent then keep[#keep + 1] = r end
+        end
+        Rows = keep
+    end
+end
+local function findRow(name, page)
+    local key = norm(name)
+    local any
+    for _, r in ipairs(Rows) do
+        if r.key == key and r.row and r.row.Parent then
+            if page and r.row:IsDescendantOf(page) then return r.row end
+            any = any or r.row
+        end
+    end
+    if any then return any end
+    -- fallback 1: a row on that page whose registered name contains / is contained in the wanted name
+    if page then
+        for _, r in ipairs(Rows) do
+            if r.row and r.row.Parent and r.row:IsDescendantOf(page)
+                and (r.key:find(key, 1, true) or key:find(r.key, 1, true)) then
+                return r.row
+            end
+        end
+        -- fallback 2: read the labels that are actually on the page
+        for _, d in ipairs(page:GetDescendants()) do
+            if d:IsA("TextLabel") and d.Text ~= "" and norm(d.Text) == key then
+                local c = d
+                while c.Parent and c.Parent ~= page do c = c.Parent end
+                if c.Parent == page then
+                    if c:IsA("Frame") and c.BackgroundTransparency >= 1 then
+                        local inner = c:FindFirstChildWhichIsA("TextButton")
+                        if inner then return inner end
+                    end
+                    return c
+                end
+            end
+        end
+    end
+    return nil
+end
+
 ----------------------------------------------------------------------
 -- palette
 ----------------------------------------------------------------------
@@ -321,6 +376,7 @@ function Skin.createToggleSwitch(parent, text, description, callback, externalCo
     end
     function obj:GetState() return isOn end
 
+    registerRow(row, text)
     local registry = Env.GetKeybinds and Env.GetKeybinds()
     if registry then registry[text] = obj end
 
@@ -438,6 +494,7 @@ function Skin.createSlider(parent, text, description, minVal, maxVal, defaultVal
         dragging = false
     end)
 
+    registerRow(row, text)
     setSlider(currentVal)
     ready = true
     if not noSave and Env.Settings[text] ~= nil then
@@ -497,6 +554,7 @@ function Skin.createButton(parent, text, description, color, callback)
     btn.InputEnded:Connect(function(input)
         if isPress(input) then tween(btn, 0.12, { BackgroundColor3 = P.ItemHover }) end
     end)
+    registerRow(btn, text)
     btn.MouseButton1Click:Connect(callback)
     return btn
 end
@@ -521,6 +579,7 @@ function Skin.createTextBox(parent, placeholder, description, callback)
         TextColor3 = P.TextPrimary, Font = FONT_BODY, TextSize = 13, TextXAlignment = LEFT,
         ClearTextOnFocus = false, BorderSizePixel = 0,
     }, field)
+    registerRow(row, placeholder, description)
     box.Focused:Connect(function() fieldLine.Color = P.Accent end)
     box.FocusLost:Connect(function()
         fieldLine.Color = P.Outline
@@ -632,6 +691,7 @@ local RAIL_C, RAIL_E = 56, 164
 function Skin.Mount(env)
     Env, P = env, env.Theme
     toasts = {}
+    Rows = {}
 
     local S = {}
     Skin.Shell = S
@@ -713,7 +773,7 @@ function Skin.Mount(env)
     }, rail)
     local brandVer = label({
         Position = UDim2.new(0, 56, 0, 29), Size = UDim2.new(1, -60, 0, 14),
-        Text = "v" .. tostring(env.Version or ""), Font = FONT_BODY, TextSize = 11, TextColor3 = P.TextSecondary,
+        Text = "v" .. tostring(env.Version or "") .. " \194\183 ui 2.2", Font = FONT_BODY, TextSize = 11, TextColor3 = P.TextSecondary,
         TextTransparency = expanded and 0 or 1, ZIndex = 3,
     }, rail)
 
@@ -955,6 +1015,77 @@ function Skin.Mount(env)
     end
 
     ----------------------------------------------------------------
+    -- jump to a feature: switch page, scroll the row to the middle, glow twice
+    ----------------------------------------------------------------
+    local function glowRow(target)
+        if not target or not target.Parent then return end
+        local stroke = target:FindFirstChildOfClass("UIStroke")
+        local madeStroke = false
+        if not stroke then
+            stroke = make("UIStroke", { Color = P.Accent, Thickness = 1, Transparency = 1, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, target)
+            madeStroke = true
+        end
+        local oc, ot, otr, obg = stroke.Color, stroke.Thickness, stroke.Transparency, target.BackgroundColor3
+        local halo = make("Frame", {
+            Name = "PhHalo", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.5, 0),
+            Size = UDim2.new(1, 0, 1, 10), BackgroundColor3 = P.Accent, BackgroundTransparency = 1,
+            BorderSizePixel = 0, ZIndex = 20,
+        }, target)
+        corner(halo, 14)
+        stroke.Color = P.Accent
+        local tint = obg:Lerp(P.Accent, 0.3)
+        for _ = 1, 2 do
+            tween(stroke, 0.2, { Thickness = 3, Transparency = 0 })
+            tween(halo, 0.2, { BackgroundTransparency = 0.78 })
+            tween(target, 0.2, { BackgroundColor3 = tint })
+            task.wait(0.25)
+            tween(stroke, 0.2, { Thickness = ot, Transparency = otr })
+            tween(halo, 0.2, { BackgroundTransparency = 1 })
+            tween(target, 0.2, { BackgroundColor3 = obg })
+            task.wait(0.27)
+        end
+        if halo.Parent then halo:Destroy() end
+        if target.Parent then target.BackgroundColor3 = obg end
+        if madeStroke then
+            if stroke.Parent then stroke:Destroy() end
+        else
+            stroke.Color, stroke.Thickness, stroke.Transparency = oc, ot, otr
+        end
+    end
+
+    local focusToken = 0
+    function S.FocusFeature(featName, page)
+        focusToken = focusToken + 1
+        local token = focusToken
+        Skin.SendNotification("Jumping to " .. tidy(featName), P.Accent)
+        local function run()
+            local target = findRow(featName, page)
+            if not target then
+                Skin.SendNotification("Opened the page, but could not find that option", P.Yellow)
+                return
+            end
+            -- wait for the page to lay itself out and finish its slide-in
+            for _ = 1, 25 do
+                if target.AbsoluteSize.Y > 0 and page.AbsoluteSize.Y > 0 and page.CanvasSize.Y.Offset > 0 then break end
+                task.wait(0.03)
+            end
+            task.wait(0.2)
+            if token ~= focusToken or not target.Parent then return end
+            local maxY = math.max(0, page.CanvasSize.Y.Offset - page.AbsoluteSize.Y)
+            local y = target.AbsolutePosition.Y - page.AbsolutePosition.Y + page.CanvasPosition.Y
+            y = math.clamp(y - (page.AbsoluteSize.Y - target.AbsoluteSize.Y) / 2, 0, maxY)
+            TweenService:Create(page, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { CanvasPosition = Vector2.new(0, y) }):Play()
+            task.wait(0.45)
+            if token ~= focusToken or not target.Parent then return end
+            glowRow(target)
+        end
+        local ok, err = pcall(run)
+        if not ok then
+            Skin.SendNotification("Jump error: " .. tostring(err):sub(1, 70), P.Red)
+        end
+    end
+
+    ----------------------------------------------------------------
     -- search
     ----------------------------------------------------------------
     searchBox:GetPropertyChangedSignal("Text"):Connect(function()
@@ -999,7 +1130,11 @@ function Skin.Mount(env)
                 row.MouseEnter:Connect(function() tween(row, 0.1, { BackgroundColor3 = P.ItemHover }) end)
                 row.MouseLeave:Connect(function() tween(row, 0.1, { BackgroundColor3 = P.ContentBg }) end)
                 row.MouseButton1Click:Connect(function()
-                    if tab then S.SwitchTab(tab.btn, tab.frame) end
+                    if tab then
+                        searchBox:ReleaseFocus()
+                        S.SwitchTab(tab.btn, tab.frame)
+                        task.spawn(S.FocusFeature, feat.n, tab.frame)
+                    end
                 end)
             end
         end
