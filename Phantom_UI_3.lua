@@ -219,8 +219,13 @@ function Skin.createLayout(parent)
     return l
 end
 
+local Headers = {}
+
 function Skin.createSectionHeader(parent, text)
-    local row = make("Frame", { Name = "PhHeader", Size = UDim2.new(1, -8, 0, 28), BackgroundTransparency = 1, BorderSizePixel = 0 }, parent)
+    local row = make("TextButton", {
+        Name = "PhHeader", Size = UDim2.new(1, -8, 0, 28), BackgroundTransparency = 1, Text = "",
+        AutoButtonColor = false, BorderSizePixel = 0,
+    }, parent)
     make("Frame", {
         Position = UDim2.new(0, 2, 0.5, -1), Size = UDim2.new(0, 10, 0, 2), BackgroundColor3 = P.Accent, BorderSizePixel = 0,
     }, row)
@@ -229,16 +234,57 @@ function Skin.createSectionHeader(parent, text)
         Text = tidy(text):upper(), Font = FONT_BOLD, TextSize = 11, TextColor3 = P.TextSecondary,
     }, row)
     local line = make("Frame", {
-        AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 120, 0.5, 0), Size = UDim2.new(1, -128, 0, 1),
+        AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 120, 0.5, 0), Size = UDim2.new(1, -150, 0, 1),
         BackgroundColor3 = P.Outline, BackgroundTransparency = 0.35, BorderSizePixel = 0,
+    }, row)
+    local chev = label({
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -6, 0.5, 0), Size = UDim2.new(0, 16, 0, 16),
+        Text = "\226\128\186", Font = FONT_BOLD, TextSize = 16, TextColor3 = P.TextSecondary,
+        TextXAlignment = CENTER, Rotation = 90,
     }, row)
     local function fit()
         local x = 20 + lbl.AbsoluteSize.X + 10
         line.Position = UDim2.new(0, x, 0.5, 0)
-        line.Size = UDim2.new(1, -(x + 6), 0, 1)
+        line.Size = UDim2.new(1, -(x + 30), 0, 1)
     end
     lbl:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
     fit()
+
+    -- tap a header to fold / unfold the rows under it (until the next header)
+    local state = { header = row, collapsed = false, saved = {} }
+    Headers[#Headers + 1] = state
+    local function followers()
+        local list, started = {}, false
+        local par = row.Parent
+        if not par then return list end
+        for _, c in ipairs(par:GetChildren()) do
+            if c == row then
+                started = true
+            elseif started then
+                if c.Name == "PhHeader" then break end
+                if c:IsA("GuiObject") then list[#list + 1] = c end
+            end
+        end
+        return list
+    end
+    function state.set(collapsed)
+        if collapsed == state.collapsed or not row.Parent then return end
+        state.collapsed = collapsed
+        if collapsed then
+            for _, c in ipairs(followers()) do
+                state.saved[c] = c.Visible
+                c.Visible = false
+            end
+        else
+            for c, vis in pairs(state.saved) do
+                if c.Parent then c.Visible = vis end
+            end
+            state.saved = {}
+        end
+        tween(chev, 0.15, { Rotation = collapsed and 0 or 90 })
+        tween(lbl, 0.15, { TextColor3 = collapsed and P.Accent or P.TextSecondary })
+    end
+    row.MouseButton1Click:Connect(function() state.set(not state.collapsed) end)
     return row
 end
 
@@ -284,6 +330,12 @@ function Skin.createToggleSwitch(parent, text, description, callback, externalCo
     }, track)
     corner(knob, 4)
 
+    local hovering = false
+    local function rowCol()
+        local base = hovering and P.ItemHover or P.ContentBg
+        return isOn and base:Lerp(P.Accent, 0.1) or base
+    end
+
     local function paint(instant)
         local pos = isOn and UDim2.new(1, -23, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
         local trackCol = isOn and P.Accent or P.Outline
@@ -297,7 +349,9 @@ function Skin.createToggleSwitch(parent, text, description, callback, externalCo
             track.BackgroundColor3 = trackCol
             stateLbl.TextColor3 = textCol
             stripe.BackgroundColor3 = stripeCol
+            row.BackgroundColor3 = rowCol()
         else
+            tween(row, 0.16, { BackgroundColor3 = rowCol() })
             tween(knob, 0.16, { Position = pos, BackgroundColor3 = knobCol })
             tween(track, 0.16, { BackgroundColor3 = trackCol })
             tween(stateLbl, 0.16, { TextColor3 = textCol })
@@ -330,8 +384,8 @@ function Skin.createToggleSwitch(parent, text, description, callback, externalCo
         if open then open(text, paintKb, obj) end
     end)
 
-    row.MouseEnter:Connect(function() tween(row, 0.12, { BackgroundColor3 = P.ItemHover }) end)
-    row.MouseLeave:Connect(function() tween(row, 0.12, { BackgroundColor3 = P.ContentBg }) end)
+    row.MouseEnter:Connect(function() hovering = true; tween(row, 0.12, { BackgroundColor3 = rowCol() }) end)
+    row.MouseLeave:Connect(function() hovering = false; tween(row, 0.12, { BackgroundColor3 = rowCol() }) end)
 
     local function commit()
         if not noSave then
@@ -720,6 +774,7 @@ function Skin.Mount(env)
     toasts = {}
     toastOrder = 0
     Rows = {}
+    Headers = {}
 
     local S = {}
     Skin.Shell = S
@@ -735,8 +790,12 @@ function Skin.Mount(env)
         HorizontalAlignment = Enum.HorizontalAlignment.Center, VerticalAlignment = Enum.VerticalAlignment.Bottom,
     }, toastHost)
 
-    local W = math.clamp((settings.MainFrameSize and settings.MainFrameSize.W) or 600, 460, 1100)
-    local H = math.clamp((settings.MainFrameSize and settings.MainFrameSize.H) or 360, 300, 800)
+    local vp = gui.AbsoluteSize
+    local maxW = (vp.X > 0) and math.min(1100, vp.X - 16) or 1100
+    local maxH = (vp.Y > 0) and math.min(800, vp.Y - 16) or 800
+    local minW, minH = math.min(460, maxW), math.min(300, maxH)
+    local W = math.clamp((settings.MainFrameSize and settings.MainFrameSize.W) or 600, minW, maxW)
+    local H = math.clamp((settings.MainFrameSize and settings.MainFrameSize.H) or 360, minH, maxH)
     local mp = settings.MainFramePos
     local main = make("Frame", {
         Name = "MainFrame", Size = UDim2.new(0, W, 0, H),
@@ -1030,10 +1089,16 @@ function Skin.Mount(env)
         tabByBtn[btn] = entry
 
         btn.MouseEnter:Connect(function()
-            if not (current and current.btn == btn) then tween(txt, 0.1, { TextColor3 = P.TextPrimary }) end
+            if not (current and current.btn == btn) then
+                tween(txt, 0.1, { TextColor3 = P.TextPrimary })
+                tween(btn, 0.1, { BackgroundTransparency = 0.94 })
+            end
         end)
         btn.MouseLeave:Connect(function()
-            if not (current and current.btn == btn) then tween(txt, 0.1, { TextColor3 = P.TextSecondary }) end
+            if not (current and current.btn == btn) then
+                tween(txt, 0.1, { TextColor3 = P.TextSecondary })
+                tween(btn, 0.1, { BackgroundTransparency = 1 })
+            end
         end)
         btn.MouseButton1Click:Connect(function() S.SwitchTab(btn, frame) end)
         return btn
@@ -1073,6 +1138,9 @@ function Skin.Mount(env)
         local token = focusToken
         Skin.SendNotification("Jumping to " .. tidy(featName), P.Accent)
         local function run()
+            for _, h in ipairs(Headers) do
+                if h.collapsed and h.header.Parent == page then h.set(false) end
+            end
             local target = findRow(featName, page)
             if not target then
                 Skin.SendNotification("Opened the page, but could not find that option", P.Yellow)
@@ -1180,7 +1248,7 @@ function Skin.Mount(env)
     env.AddConnection(UserInputService.InputChanged:Connect(function(input)
         if resizing and isMove(input) then
             local d = input.Position - rStart
-            main.Size = UDim2.new(0, math.clamp(rSize.X + d.X, 460, 1100), 0, math.clamp(rSize.Y + d.Y, 300, 800))
+            main.Size = UDim2.new(0, math.clamp(rSize.X + d.X, minW, maxW), 0, math.clamp(rSize.Y + d.Y, minH, maxH))
         end
     end))
 
