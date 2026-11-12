@@ -53,9 +53,18 @@ local function grad(o, c1, c2, rot)
     return g
 end
 
-local function tween(o, dur, props, style)
+local function tween(o, dur, props, style, dir)
     if not o or not o.Parent then return end
-    TweenService:Create(o, TweenInfo.new(dur, style or Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props):Play()
+    local an = Env and Env.Anim
+    if an and not an.on() then
+        for k, v in pairs(props) do o[k] = v end
+        return
+    end
+    TweenService:Create(o, TweenInfo.new(dur, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out), props):Play()
+end
+
+local function AN()
+    return Env and Env.Anim
 end
 
 local function isPress(input)
@@ -280,6 +289,8 @@ function Skin.createSectionHeader(parent, text)
                 if c.Parent then c.Visible = vis end
             end
             state.saved = {}
+            local an = AN()
+            if an then an.staggerList(followers(), 0.03) end
         end
         tween(chev, 0.15, { Rotation = collapsed and 0 or 90 })
         tween(lbl, 0.15, { TextColor3 = collapsed and P.Accent or P.TextSecondary })
@@ -299,6 +310,7 @@ function Skin.createToggleSwitch(parent, text, description, callback, externalCo
         Text = "", BorderSizePixel = 0,
     }, parent)
     corner(row, 6)
+    if AN() then AN().bindRipple(row, P.Accent) end
 
     local stripe = make("Frame", {
         Position = UDim2.new(0, 0, 0, 9), Size = UDim2.new(0, 3, 1, -18), BackgroundColor3 = P.Outline, BorderSizePixel = 0,
@@ -351,8 +363,10 @@ function Skin.createToggleSwitch(parent, text, description, callback, externalCo
             stripe.BackgroundColor3 = stripeCol
             row.BackgroundColor3 = rowCol()
         else
-            tween(row, 0.16, { BackgroundColor3 = rowCol() })
-            tween(knob, 0.16, { Position = pos, BackgroundColor3 = knobCol })
+            if isOn then row.BackgroundColor3 = P.ContentBg:Lerp(P.Accent, 0.4) end
+            tween(row, 0.55, { BackgroundColor3 = rowCol() })
+            tween(knob, 0.3, { Position = pos }, Enum.EasingStyle.Back)
+            tween(knob, 0.16, { BackgroundColor3 = knobCol })
             tween(track, 0.16, { BackgroundColor3 = trackCol })
             tween(stateLbl, 0.16, { TextColor3 = textCol })
             tween(stripe, 0.16, { BackgroundColor3 = stripeCol })
@@ -508,7 +522,8 @@ function Skin.createSlider(parent, text, description, minVal, maxVal, defaultVal
             scroller.ScrollingEnabled = true
             scroller = nil
         end
-        tween(handle, 0.08, { Size = UDim2.new(0, 8, 0, 18) })
+        tween(handle, 0.16, { Size = UDim2.new(0, 8, 0, 18) }, Enum.EasingStyle.Back)
+        tween(track, 0.16, { Size = UDim2.new(1, 0, 0, 6) })
     end
     local function fromInput(input)
         local rel = math.clamp((input.Position.X - track.AbsolutePosition.X) / math.max(track.AbsoluteSize.X, 1), 0, 1)
@@ -520,7 +535,8 @@ function Skin.createSlider(parent, text, description, minVal, maxVal, defaultVal
             dragging = true
             scroller = row:FindFirstAncestorWhichIsA("ScrollingFrame")
             if scroller then scroller.ScrollingEnabled = false end
-            tween(handle, 0.08, { Size = UDim2.new(0, 10, 0, 22) })
+            tween(handle, 0.12, { Size = UDim2.new(0, 10, 0, 22) }, Enum.EasingStyle.Back)
+            tween(track, 0.12, { Size = UDim2.new(1, 0, 0, 8) })
             fromInput(input)
         end
     end)
@@ -559,6 +575,7 @@ function Skin.createButton(parent, text, description, color, callback)
         Text = "", BorderSizePixel = 0,
     }, parent)
     corner(btn, 6)
+    if AN() then AN().bindRipple(btn, accent) end
 
     local stripe = make("Frame", {
         Position = UDim2.new(0, 0, 0, 9), Size = UDim2.new(0, 3, 1, -18), BackgroundColor3 = accent, BorderSizePixel = 0,
@@ -663,12 +680,15 @@ function Skin.createConfirmation(_, text, onYes)
         Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.45,
         AutoButtonColor = false, Text = "", ZIndex = 200, BorderSizePixel = 0,
     }, shell.MainFrame)
+    overlay.BackgroundTransparency = 1
+    tween(overlay, 0.22, { BackgroundTransparency = 0.45 })
     local panel = make("Frame", {
         AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.5, 0), Size = UDim2.new(0, 300, 0, 0),
         AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = P.SidebarBg, BorderSizePixel = 0, ZIndex = 201,
     }, overlay)
     corner(panel, 8)
     outline(panel, P.Outline, 1)
+    if AN() then AN().scaleIn(panel, 0.82, 0.34) end
     make("Frame", { Size = UDim2.new(1, 0, 0, 2), BackgroundColor3 = P.Accent, BorderSizePixel = 0, ZIndex = 203 }, panel)
     make("UIPadding", {
         PaddingTop = UDim.new(0, 18), PaddingBottom = UDim.new(0, 14), PaddingLeft = UDim.new(0, 16), PaddingRight = UDim.new(0, 16),
@@ -733,6 +753,7 @@ function Skin.SendNotification(text, color)
         BackgroundColor3 = accent, BackgroundTransparency = 1, BorderSizePixel = 0,
     }, toast)
 
+    if AN() then AN().scaleIn(toast, 0.8, 0.32) end
     table.insert(toasts, toast)
     while #toasts > 4 do
         local old = table.remove(toasts, 1)
@@ -807,7 +828,16 @@ function Skin.Mount(env)
     S.MainFrame = main
 
     local topLine = make("Frame", { Size = UDim2.new(1, 0, 0, 2), BackgroundColor3 = WHITE, BorderSizePixel = 0, ZIndex = 6 }, main)
-    grad(topLine, P.Accent, acc2(), 0)
+    local topGrad = Instance.new("UIGradient")
+    topGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, P.Accent),
+        ColorSequenceKeypoint.new(0.4, acc2()),
+        ColorSequenceKeypoint.new(0.5, Color3.new(1, 1, 1)),
+        ColorSequenceKeypoint.new(0.6, acc2()),
+        ColorSequenceKeypoint.new(1, P.Accent),
+    })
+    topGrad.Parent = topLine
+    if AN() then AN().shimmer(topGrad, 2.8) end
 
     local function savePos()
         settings.MainFramePos = {
@@ -852,7 +882,10 @@ function Skin.Mount(env)
     corner(close, 6)
     close.MouseEnter:Connect(function() tween(close, 0.1, { BackgroundColor3 = P.Red, TextColor3 = WHITE }) end)
     close.MouseLeave:Connect(function() tween(close, 0.1, { BackgroundColor3 = P.ContentBg, TextColor3 = P.TextSecondary }) end)
-    close.MouseButton1Click:Connect(function() main.Visible = false end)
+    close.MouseButton1Click:Connect(function()
+        local an = AN()
+        if an then an.popOut(main) else main.Visible = false end
+    end)
 
     local searchWrap = make("Frame", {
         AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -46, 0.5, 0), Size = UDim2.new(0, 160, 0, 28),
@@ -977,6 +1010,15 @@ function Skin.Mount(env)
     local current
     local suppress = false
 
+    do
+        local an = AN()
+        if an then
+            an.watchOpen(main, function()
+                if current then an.stagger(current.frame) end
+            end)
+        end
+    end
+
     local function updateSub()
         if not current then return end
         local n = 0
@@ -1014,10 +1056,12 @@ function Skin.Mount(env)
     local function paintTabs(active)
         for _, t in ipairs(tabs) do
             local on = (t.btn == active)
-            tween(t.bar, 0.14, { BackgroundTransparency = on and 0 or 1 })
-            tween(t.txt, 0.14, { TextColor3 = on and P.TextPrimary or P.TextSecondary })
-            tween(t.ico, 0.14, { TextTransparency = on and 0 or 0.4 })
-            tween(t.btn, 0.14, { BackgroundTransparency = on and 0.9 or 1 })
+            tween(t.bar, 0.34, { Size = on and UDim2.new(1, -16, 0, 2) or UDim2.new(0, 0, 0, 2) }, on and Enum.EasingStyle.Back or Enum.EasingStyle.Quad)
+            tween(t.bar, 0.16, { BackgroundTransparency = on and 0 or 1 })
+            tween(t.txt, 0.16, { TextColor3 = on and P.TextPrimary or P.TextSecondary })
+            tween(t.ico, 0.16, { TextTransparency = on and 0 or 0.4 })
+            tween(t.ico, 0.3, { TextSize = on and 18 or 15 }, Enum.EasingStyle.Back)
+            tween(t.btn, 0.2, { BackgroundTransparency = on and 0.9 or 1 })
         end
     end
 
@@ -1048,8 +1092,10 @@ function Skin.Mount(env)
         end
         paintTabs(btn)
         for _, pg in pairs(pages) do pg.Visible = (pg == frame) end
-        frame.Position = UDim2.new(0, 0, 0, 8)
-        tween(frame, 0.16, { Position = UDim2.new(0, 0, 0, 0) })
+        frame.Position = UDim2.new(0, 0, 0, 16)
+        tween(frame, 0.34, { Position = UDim2.new(0, 0, 0, 0) }, Enum.EasingStyle.Quint)
+        local an = AN()
+        if an then an.stagger(frame) end
         current = { btn = btn, frame = frame }
         updateSub()
         reveal(btn)
@@ -1078,11 +1124,12 @@ function Skin.Mount(env)
             Font = FONT_BOLD, TextSize = 12, TextColor3 = P.TextSecondary, LayoutOrder = 2, ZIndex = 5,
         }, holder)
         local bar = make("Frame", {
-            AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -1), Size = UDim2.new(1, -16, 0, 2),
+            AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -1), Size = UDim2.new(0, 0, 0, 2),
             BackgroundColor3 = P.Accent, BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 6,
         }, btn)
         corner(bar, 1)
 
+        if AN() then AN().bindRipple(btn, P.Accent) end
         local entry = { btn = btn, frame = frame, bar = bar, ico = ico, txt = txt, label = tidy(labelText) }
         tabs[#tabs + 1] = entry
         tabOf[frame] = entry
@@ -1155,7 +1202,7 @@ function Skin.Mount(env)
             local maxY = math.max(0, page.CanvasSize.Y.Offset - page.AbsoluteSize.Y)
             local y = target.AbsolutePosition.Y - page.AbsolutePosition.Y + page.CanvasPosition.Y
             y = math.clamp(y - (page.AbsoluteSize.Y - target.AbsoluteSize.Y) / 2, 0, maxY)
-            TweenService:Create(page, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { CanvasPosition = Vector2.new(0, y) }):Play()
+            tween(page, 0.4, { CanvasPosition = Vector2.new(0, y) }, Enum.EasingStyle.Quart)
             task.wait(0.45)
             if token ~= focusToken or not target.Parent then return end
             glowRow(target)
@@ -1193,6 +1240,7 @@ function Skin.Mount(env)
                 local tab = feat.f and tabOf[feat.f]
                 local row = make("TextButton", { Size = UDim2.new(1, -8, 0, 48), BackgroundColor3 = P.ContentBg, AutoButtonColor = false, Text = "", BorderSizePixel = 0 }, searchPage)
                 corner(row, 6)
+                if AN() then AN().bindRipple(row, P.Accent) end
                 make("Frame", { Position = UDim2.new(0, 0, 0, 9), Size = UDim2.new(0, 3, 1, -18), BackgroundColor3 = P.Accent, BorderSizePixel = 0 }, row)
                 label({ Position = UDim2.new(0, 16, 0, 7), Size = UDim2.new(1, -140, 0, 18), Text = tidy(feat.n), Font = FONT_SEMI, TextSize = 14, TextColor3 = P.TextPrimary, TextTruncate = Enum.TextTruncate.AtEnd }, row)
                 label({ Position = UDim2.new(0, 16, 0, 26), Size = UDim2.new(1, -140, 0, 16), Text = feat.d or "", Font = FONT_BODY, TextSize = 11, TextColor3 = P.TextSecondary, TextTruncate = Enum.TextTruncate.AtEnd }, row)
@@ -1216,6 +1264,8 @@ function Skin.Mount(env)
             end
         end
         footL.Text = "Search  \194\183  " .. shown .. (shown == 1 and " match" or " matches")
+        local an = AN()
+        if an then an.stagger(searchPage, 0.025) end
         if shown == 0 then
             label({ Size = UDim2.new(1, -8, 0, 44), Text = "Nothing matches \226\128\156" .. searchBox.Text .. "\226\128\157. Try a shorter word.", Font = FONT_BODY, TextSize = 13, TextColor3 = P.TextSecondary, TextWrapped = true }, searchPage)
         end
