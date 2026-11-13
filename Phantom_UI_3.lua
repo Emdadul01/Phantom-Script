@@ -837,7 +837,7 @@ function Skin.Mount(env)
         ColorSequenceKeypoint.new(1, P.Accent),
     })
     topGrad.Parent = topLine
-    if AN() then AN().shimmer(topGrad, 2.8) end
+
 
     local function savePos()
         settings.MainFramePos = {
@@ -1014,6 +1014,7 @@ function Skin.Mount(env)
         local an = AN()
         if an then
             an.watchOpen(main, function()
+                an.shimmer(topGrad, 1.4)
                 if current then an.stagger(current.frame) end
             end)
         end
@@ -1056,12 +1057,14 @@ function Skin.Mount(env)
     local function paintTabs(active)
         for _, t in ipairs(tabs) do
             local on = (t.btn == active)
-            tween(t.bar, 0.34, { Size = on and UDim2.new(1, -16, 0, 2) or UDim2.new(0, 0, 0, 2) }, on and Enum.EasingStyle.Back or Enum.EasingStyle.Quad)
-            tween(t.bar, 0.16, { BackgroundTransparency = on and 0 or 1 })
-            tween(t.txt, 0.16, { TextColor3 = on and P.TextPrimary or P.TextSecondary })
-            tween(t.ico, 0.16, { TextTransparency = on and 0 or 0.4 })
-            tween(t.ico, 0.3, { TextSize = on and 18 or 15 }, Enum.EasingStyle.Back)
-            tween(t.btn, 0.2, { BackgroundTransparency = on and 0.9 or 1 })
+            if t.on ~= on then            -- only repaint the tabs that actually changed
+                t.on = on
+                tween(t.bar, 0.3, { Size = on and UDim2.new(1, -16, 0, 2) or UDim2.new(0, 0, 0, 2) }, Enum.EasingStyle.Quint)
+                tween(t.bar, 0.16, { BackgroundTransparency = on and 0 or 1 })
+                tween(t.txt, 0.16, { TextColor3 = on and P.TextPrimary or P.TextSecondary })
+                tween(t.ico, 0.16, { TextTransparency = on and 0 or 0.4 })
+                tween(t.btn, 0.2, { BackgroundTransparency = on and 0.9 or 1 })
+            end
         end
     end
 
@@ -1264,8 +1267,6 @@ function Skin.Mount(env)
             end
         end
         footL.Text = "Search  \194\183  " .. shown .. (shown == 1 and " match" or " matches")
-        local an = AN()
-        if an then an.stagger(searchPage, 0.025) end
         if shown == 0 then
             label({ Size = UDim2.new(1, -8, 0, 44), Text = "Nothing matches \226\128\156" .. searchBox.Text .. "\226\128\157. Try a shorter word.", Font = FONT_BODY, TextSize = 13, TextColor3 = P.TextSecondary, TextWrapped = true }, searchPage)
         end

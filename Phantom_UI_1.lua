@@ -817,7 +817,6 @@ function Skin.Mount(env)
     logoDot.ZIndex = 3
     logoDot.Parent = HeaderBar
     round(logoDot, UDim.new(1, 0))
-    if AN() then AN().breathe(logoDot, { BackgroundTransparency = 0.65 }, 1.3) end
 
     local HeaderTitle = Instance.new("TextLabel")
     HeaderTitle.Size = UDim2.new(0, 120, 1, 0)
@@ -921,7 +920,6 @@ function Skin.Mount(env)
         ColorSequenceKeypoint.new(1, P.Outline),
     })
     accentGrad.Parent = accentLine
-    if AN() then AN().shimmer(accentGrad, 3) end
 
     local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
     local dragWarningCooldown = false
@@ -1090,6 +1088,7 @@ function Skin.Mount(env)
         local an = AN()
         if an then
             an.watchOpen(MainFrame, function()
+                an.shimmer(accentGrad, 1.4)
                 if currentFrame then an.stagger(currentFrame) end
             end)
         end
@@ -1112,14 +1111,20 @@ function Skin.Mount(env)
 
     local SearchResultsFrame = S.CreatePage("SearchResults")
 
+    local function resetTab(child)
+        TweenService:Create(child, TweenInfo.new(0.18), { BackgroundColor3 = Color3.fromRGB(0, 0, 0), BackgroundTransparency = 1 }):Play()
+        local ic = child:FindFirstChild("Icon"); if ic then TweenService:Create(ic, TweenInfo.new(0.18), { TextColor3 = P.TextSecondary }):Play() end
+        local lb = child:FindFirstChild("Lbl"); if lb then TweenService:Create(lb, TweenInfo.new(0.18), { TextColor3 = P.TextSecondary }):Play() end
+        local bar = child:FindFirstChild("Bar"); if bar then TweenService:Create(bar, TweenInfo.new(0.18), { Size = UDim2.new(0, 2, 0, 0), BackgroundTransparency = 1 }):Play() end
+    end
+
     local function applyTabButtonVisuals(activeBtn)
-        for _, child in pairs(TabButtonsContainer:GetChildren()) do
-            if child:IsA("TextButton") then
-                TweenService:Create(child, TweenInfo.new(0.18), { BackgroundColor3 = Color3.fromRGB(0, 0, 0), BackgroundTransparency = 1 }):Play()
-                local ic = child:FindFirstChild("Icon"); if ic then TweenService:Create(ic, TweenInfo.new(0.18), { TextColor3 = P.TextSecondary }):Play() end
-                local lb = child:FindFirstChild("Lbl"); if lb then TweenService:Create(lb, TweenInfo.new(0.18), { TextColor3 = P.TextSecondary }):Play() end
-                local bar = child:FindFirstChild("Bar"); if bar then TweenService:Create(bar, TweenInfo.new(0.18), { Size = UDim2.new(0, 2, 0, 0), BackgroundTransparency = 1 }):Play() end
-                local ic2 = child:FindFirstChild("Icon"); if ic2 then TweenService:Create(ic2, TweenInfo.new(0.2), { TextSize = 16 }):Play() end
+        -- only the tab that was active is reset (all of them only on the very first call)
+        if currentTab then
+            if currentTab ~= activeBtn and currentTab.Parent then resetTab(currentTab) end
+        else
+            for _, child in pairs(TabButtonsContainer:GetChildren()) do
+                if child:IsA("TextButton") and child ~= activeBtn then resetTab(child) end
             end
         end
         TweenService:Create(activeBtn, TweenInfo.new(0.18), { BackgroundColor3 = P.ContentBg, BackgroundTransparency = 0 }):Play()
@@ -1127,11 +1132,9 @@ function Skin.Mount(env)
         local lb = activeBtn:FindFirstChild("Lbl"); if lb then TweenService:Create(lb, TweenInfo.new(0.18), { TextColor3 = P.Accent }):Play() end
         local bar = activeBtn:FindFirstChild("Bar")
         if bar then
-            TweenService:Create(bar, TweenInfo.new(0.36, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.new(0, 2, 0.55, 0) }):Play()
+            TweenService:Create(bar, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = UDim2.new(0, 2, 0.55, 0) }):Play()
             TweenService:Create(bar, TweenInfo.new(0.18), { BackgroundTransparency = 0 }):Play()
         end
-        local ic3 = activeBtn:FindFirstChild("Icon")
-        if ic3 then TweenService:Create(ic3, TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { TextSize = 20 }):Play() end
         currentTab = activeBtn
     end
 
@@ -1394,7 +1397,6 @@ function Skin.Mount(env)
         end
 
         SearchResultsFrame.CanvasSize = UDim2.new(0, 0, 0, 28 + rcount * 68 + 20)
-        if AN() then AN().stagger(SearchResultsFrame, 0.025) end
     end)
 
     return S
