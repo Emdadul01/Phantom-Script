@@ -1,9 +1,9 @@
 {
-  "latest": "100.1",
-  "current": "100.1",
+  "latest": "9.1",
+  "current": "9.1",
   "versions": [
     {
-      "version": "100.1",
+      "version": "9.1",
       "tagline": "Vehicle & Ladder Speed Fixes",
       "changes": [
         {
