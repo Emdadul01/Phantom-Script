@@ -1,12 +1,32 @@
 {
   "schema": 1,
   "latest": "9.1",
-  "updated": "2026-11-25",
+  "updated": "2026-11-26",
   "versions": [
     {
       "version": "9.1",
-      "tagline": "AI Speed Boost, Vehicle & Ladder Fixes",
+      "tagline": "AI Speed Boost, Smarter Search, Vehicle & Ladder Fixes",
       "changes": [
+        {
+          "icon": "🔎",
+          "text": "Smarter Search — type several words at once (e.g. \"fly speed\") and every word is matched, in any order"
+        },
+        {
+          "icon": "✍️",
+          "text": "Typo tolerant — \"telport\", \"noclpi\" or \"gravty\" still find the right feature. Short forms like \"spd\" and \"autojump\" work too"
+        },
+        {
+          "icon": "🏆",
+          "text": "Ranked results — the best match is always on top, names first, then keywords and descriptions"
+        },
+        {
+          "icon": "🏷️",
+          "text": "Extra keywords — search by what a feature does: \"wallhack\", \"lag\", \"aimbot\", \"bhop\", \"protect\" and more"
+        },
+        {
+          "icon": "📂",
+          "text": "Tab filters — start with a slash to search inside one tab: \"/esp\" lists ESP, \"/move fly\", \"/pvp kill\", \"/opt shadow\". Type \"/\" alone to see all tabs"
+        },
         {
           "icon": "♻️",
           "text": "Auto Re-run — Phantom now re-runs by itself after Server Hop or Rejoin. Always on, no setup needed."
