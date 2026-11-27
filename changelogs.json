@@ -5,8 +5,24 @@
   "versions": [
     {
       "version": "9.1",
-      "tagline": "AI Speed Boost, Smarter Search, Vehicle & Ladder Fixes",
+      "tagline": "Command Bar, Smarter Search, HUD Editor & More",
       "changes": [
+        {
+          "icon": "⌨️",
+          "text": "Command Bar — tap the round >_ button and type any command: \"fly 80\", \"tp john\", \"noclip\", \"unfly\", \"esp\". Works with /, ; or no prefix at all"
+        },
+        {
+          "icon": "📜",
+          "text": "Every feature is a command (200+) — the list shows each command, its usage and an example. Type part of a name (like \"fly\") to see everything that matches, or tap a tab chip to filter"
+        },
+        {
+          "icon": "🎛️",
+          "text": "HUD Layout Editor — drag, resize and fade every on-screen button, saved automatically (Settings → HUD Layout Editor, or type \"hud\")"
+        },
+        {
+          "icon": "🔔",
+          "text": "Auto-update check — Phantom tells you when a newer version is on GitHub. Check manually from Settings or with \"update\""
+        },
         {
           "icon": "🔎",
           "text": "Smarter Search — type several words at once (e.g. \"fly speed\") and every word is matched, in any order"
