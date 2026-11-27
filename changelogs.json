@@ -9,19 +9,19 @@
       "changes": [
         {
           "icon": "⌨️",
-          "text": "Command Bar — tap the round >_ button and type any command: \"fly 80\", \"tp john\", \"noclip\", \"unfly\", \"esp\". Works with /, ; or no prefix at all"
+          "text": "Command Bar — type any command: \"fly 80\", \"tp john\", \"noclip\", \"unfly\", \"esp\". Works with /, ; or no prefix. Open it from Settings → Open Command Bar, or switch on the round >_ button in Settings → Show Command Button (off by default)"
         },
         {
           "icon": "📜",
           "text": "Every feature is a command (200+) — the list shows each command, its usage and an example. Type part of a name (like \"fly\") to see everything that matches, or tap a tab chip to filter"
         },
         {
-          "icon": "🎛️",
-          "text": "HUD Layout Editor — drag, resize and fade every on-screen button, saved automatically (Settings → HUD Layout Editor, or type \"hud\")"
+          "icon": "🧠",
+          "text": "Smart commands — chain with + (\"fly 80 + noclip + esp\"), relative values (\"fly +10\", \"speed x2\", \"fov max\", \"fly default\"), \"alloff\" panic switch, \"active\" list, \"!!\" to repeat, and \"preset save pvp\" / \"preset load pvp\" to store your whole setup"
         },
         {
-          "icon": "🔔",
-          "text": "Auto-update check — Phantom tells you when a newer version is on GitHub. Check manually from Settings or with \"update\""
+          "icon": "🎛️",
+          "text": "HUD Layout Editor — drag, resize and fade every on-screen button, saved automatically (Settings → HUD Layout Editor, or type \"hud\")"
         },
         {
           "icon": "🔎",
